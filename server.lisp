@@ -11,13 +11,13 @@
 (defun cxml-rpc-method-handler (tag)
   (labels
       ((dispatch ()
-         (unless (eql (hunchentoot:request-method hunchentoot:*request*) :post)
+         (unless (eql (hunchentoot:request-method*) :post)
            (error "Method must be POST"))
          (let ((stream (hunchentoot:raw-post-data :force-binary t))
                (*current-tag* tag))
            (multiple-value-bind (method-name param-types params)
                (decode-method-call stream)
-             (setf (hunchentoot:content-type) "text/xml") 
+             (setf (hunchentoot:content-type*) "text/xml")
              (invoke-method method-name param-types params)))))
     #'dispatch))
 
