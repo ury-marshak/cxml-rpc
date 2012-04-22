@@ -11,7 +11,7 @@
 (defun cxml-rpc-method-handler (tag)
   (labels
       ((dispatch ()
-         (unless (eql (hunchentoot:request-method) :post)
+         (unless (eql (hunchentoot:request-method hunchentoot:*request*) :post)
            (error "Method must be POST"))
          (let ((stream (hunchentoot:raw-post-data :force-binary t))
                (*current-tag* tag))
