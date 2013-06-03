@@ -152,6 +152,8 @@ xml-rpc implementation supports."
 ;;       (error (c)
 ;;         (report-error -32500 (princ-to-string c))))))
 
+(defvar *catch-invocation-errors* t)
+
 (defun invoke-method (method-name param-types params
                       &key (octetp t) ((:tag *current-tag*) *current-tag*))
   (let ((faultp t)
@@ -159,31 +161,36 @@ xml-rpc implementation supports."
         return-type
         (signature (lookup-method-signature *current-tag* method-name)) )
     (flet ((report-error (fault-code fault-text)
-             (setf return-val
-                   `(("faultCode" :integer ,fault-code)
-                     ("faultString" :string ,fault-text)))
-             (setf return-type :struct)))
-      (handler-case
-          (progn
-            (check-method-signature-for-invocation param-types signature)
-            (setf return-val (apply (lookup-method *current-tag* method-name) params))
-            (setf return-type (car signature))
-            (setf faultp nil))
-        ;; error codes from
-        ;; http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php
-        (method-not-found (c)
-          (report-error -32601 (princ-to-string c)))
-        (method-arg-type-mismatch (c)
-          (report-error -32602 (princ-to-string c)))
-        (method-arg-count-mismatch (c)
-          (report-error -32602 (princ-to-string c)))
-        (program-error (c)
-          (report-error -32603 (princ-to-string c)))
-        (klacks::klacks-error (c)       ; doesn't seem to be defined?
-          (report-error -32700
-                        (format nil "Parse error from klacks: ~A" c)))
-        (error (c)
-          (report-error -32500 (princ-to-string c)))))
+             (progn
+               (setf return-val
+                     `(("faultCode" :integer ,fault-code)
+                       ("faultString" :string ,fault-text)))
+               (setf return-type :struct)))
+
+           (do-invoke-method ()
+             (check-method-signature-for-invocation param-types signature)
+             (setf return-val (apply (lookup-method *current-tag* method-name) params))
+             (setf return-type (car signature))
+             (setf faultp nil)))
+      (if *catch-invocation-errors*
+          (handler-case
+              (do-invoke-method)
+            ;; error codes from
+            ;; http://xmlrpc-epi.sourceforge.net/specs/rfc.fault_codes.php
+            (method-not-found (c)
+              (report-error -32601 (princ-to-string c)))
+            (method-arg-type-mismatch (c)
+              (report-error -32602 (princ-to-string c)))
+            (method-arg-count-mismatch (c)
+              (report-error -32602 (princ-to-string c)))
+            (program-error (c)
+              (report-error -32603 (princ-to-string c)))
+            (klacks::klacks-error (c)      ; doesn't seem to be defined?
+              (report-error -32700
+                            (format nil "Parse error from klacks: ~A" c)))
+            (error (c)
+              (report-error -32500 (princ-to-string c))))
+          (do-invoke-method)))
     (encode-response octetp faultp return-val return-type)))
 
 
@@ -230,7 +237,7 @@ xml-rpc implementation supports."
           :dwim-array))
 
 (defun system-method-signature (method-name)
-  "Returns an array of method signatures (arrays of strings listing first the 
+  "Returns an array of method signatures (arrays of strings listing first the
 return type, then the argument types)."
   ;; TODO: user-def methods.
   (values
@@ -244,4 +251,3 @@ return type, then the argument types)."
                               'function)
                "undef")
            :string))
-
