@@ -129,13 +129,18 @@
                    string))
 
 (defun decode-time (string)
+  (setf string
+        (remove-if (lambda (ch)
+                     (or (char= ch #\-)
+                         (char= ch #\:)))
+                   string))
   (let ((year (subseq string 0 4))
         (month (subseq string 4 6))
         (date (subseq string 6 8))
         (utc-marker (subseq string 8 9))
         (hour (subseq string 9 11))
-        (minute (subseq string 12 14))
-        (second (subseq string 15 17)))
+        (minute (subseq string 11 13))
+        (second (subseq string 13 15)))
     (apply #'encode-universal-time
            (mapcar #'parse-integer
                    `(,second ,minute ,hour ,date ,month ,year
