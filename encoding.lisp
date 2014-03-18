@@ -30,12 +30,16 @@
   (with-element "value"
     (encode-object type object)))
 
+(defvar *separators-in-xml-rpc-time-string* nil)
+
 (defun universal-time-to-xml-rpc-time-string (utime)
   (multiple-value-bind (second minute hour date month year day)
       (apply #'decode-universal-time utime
              (when *print-timestamps-in-utc-p* (list 0)))
     (declare (ignore day))
-    (format nil "~d~2,'0d~2,'0d~A~2,'0d:~2,'0d:~2,'0d"
+    (format nil (if *separators-in-xml-rpc-time-string*
+                    "~d-~2,'0d-~2,'0d~A~2,'0d:~2,'0d:~2,'0d"
+                    "~d~2,'0d~2,'0d~A~2,'0d:~2,'0d:~2,'0d")
             year month date
             (if *print-timestamps-in-utc-p* #\Z #\T)
             hour minute second)))
