@@ -116,7 +116,8 @@
                                ("boolean" . :boolean)
                                ("base64" . :base64)
                                ("struct" . :struct)
-                               ("array" . :array)))
+                               ("array" . :array)
+                               ("nil" . :null)))
 
 (defun type-tag-for (tag)
   (cdr (assoc tag *xml-rpc-type-alist* :test #'equal)))
@@ -207,6 +208,9 @@
       (handler-case (values (parse-number:parse-real-number chars) :double)
         (parse-error ()
           (error 'malformed-value-content :type "double" :content chars)))))
+  (:method ((type (eql :null)) source)
+    (expecting-element/consuming (source "nil")
+      (values nil :null)))
   (:method (type source)
     (error 'bad-type-specifier
            :element (nth-value 2 (klacks:peek source))
