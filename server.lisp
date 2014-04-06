@@ -122,7 +122,8 @@ xml-rpc implementation supports."
   (loop for (param-type . rem-params) on param-types
         for (sig-type . rem-signature) on signature
         for position from 0
-        unless (eql param-type sig-type)
+        unless (or (eql param-type sig-type)
+                   (eql param-type :null))
           do (error 'method-arg-type-mismatch
                     :position position :expected sig-type :got param-type)))
 
